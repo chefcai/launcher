@@ -1,0 +1,192 @@
+# Watches jrpie/Launcher for new commits and reports what merging them into this
+# fork would do. It never merges into the fork's working branch: a clean merge
+# becomes a pull request to review, a conflicted one becomes an issue naming the
+# files. Nothing here writes to feature/app-folders.
+name: Sync with upstream
+
+on:
+  schedule:
+    # Weekly, Monday morning. Upstream drift is worth finding while it is still
+    # one small change rather than six months of them.
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      upstream_ref:
+        description: 'Ref to merge instead of upstream/master (testing aid - leave blank for normal operation)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+env:
+  UPSTREAM_URL: https://github.com/jrpie/Launcher
+  FORK_BRANCH: feature/app-folders
+  MIRROR_BRANCH: master
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+      - name: Fetch upstream
+        run: |
+          git remote add upstream "$UPSTREAM_URL"
+          git fetch --no-tags upstream
+          git fetch --no-tags origin
+
+      - name: Resolve the ref to merge
+        id: resolve
+        run: |
+          REF='${{ github.event.inputs.upstream_ref }}'
+          if [ -z "$REF" ]; then
+            REF="upstream/$MIRROR_BRANCH"
+            echo 'is_default=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'is_default=false' >> "$GITHUB_OUTPUT"
+            echo "::warning::Testing mode: merging '$REF'. The $MIRROR_BRANCH fast-forward is skipped."
+          fi
+          echo "ref=$REF"                             >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse "$REF")"          >> "$GITHUB_OUTPUT"
+          echo "short=$(git rev-parse --short "$REF")" >> "$GITHUB_OUTPUT"
+
+      - name: Is there anything to do?
+        id: check
+        run: |
+          SHA='${{ steps.resolve.outputs.sha }}'
+          # Already contained means either upstream has not moved, or a previous
+          # sync pull request was merged. Either way there is nothing to report.
+          if git merge-base --is-ancestor "$SHA" "origin/$FORK_BRANCH"; then
+            echo 'todo=false' >> "$GITHUB_OUTPUT"
+            echo "Up to date: $FORK_BRANCH already contains ${{ steps.resolve.outputs.short }}. Nothing to do."
+          else
+            echo 'todo=true' >> "$GITHUB_OUTPUT"
+            echo "$(git rev-list --count "origin/$FORK_BRANCH..$SHA") new commit(s) to merge."
+          fi
+
+      - name: Have we already reported this?
+        id: dedupe
+        if: steps.check.outputs.todo == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SHORT='${{ steps.resolve.outputs.short }}'
+          BRANCH="sync/upstream-$SHORT"
+          SEEN=false
+          # Everything is keyed on the upstream commit, so a rerun for the same
+          # upstream state opens nothing a second time.
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+            SEEN=true
+            echo "Branch $BRANCH already exists - already reported."
+          fi
+          if [ "$(gh issue list --state open --search "in:title $SHORT" --json number --jq 'length')" != '0' ]; then
+            SEEN=true
+            echo "An open issue already mentions $SHORT - already reported."
+          fi
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "seen=$SEEN"     >> "$GITHUB_OUTPUT"
+
+      - name: Fast-forward the upstream mirror
+        if: steps.check.outputs.todo == 'true' && steps.dedupe.outputs.seen == 'false' && steps.resolve.outputs.is_default == 'true'
+        run: |
+          # No --force anywhere: git refuses a push that is not a fast-forward,
+          # so this cannot rewrite the mirror even if it somehow diverged.
+          git push origin '${{ steps.resolve.outputs.sha }}:refs/heads/${{ env.MIRROR_BRANCH }}'
+
+      - name: Trial merge into a scratch branch
+        id: merge
+        if: steps.check.outputs.todo == 'true' && steps.dedupe.outputs.seen == 'false'
+        run: |
+          git checkout -B '${{ steps.dedupe.outputs.branch }}' "origin/$FORK_BRANCH"
+          if git merge --no-ff --no-edit '${{ steps.resolve.outputs.sha }}'; then
+            echo 'clean=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'clean=false' >> "$GITHUB_OUTPUT"
+            git diff --name-only --diff-filter=U | sed 's/^/- `/;s/$/`/' > conflicts.md
+            git merge --abort
+            echo 'Conflicting files:'
+            cat conflicts.md
+          fi
+
+      - name: Open a pull request (merge is clean)
+        if: steps.merge.outputs.clean == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BRANCH='${{ steps.dedupe.outputs.branch }}'
+          # Guard: only ever push scratch branches. The fork's working branch is
+          # never a push target of this workflow.
+          case "$BRANCH" in
+            sync/*) ;;
+            *) echo "refusing to push '$BRANCH'"; exit 1 ;;
+          esac
+          git push origin "$BRANCH"
+          {
+            echo "Upstream \`${{ steps.resolve.outputs.ref }}\` (\`${{ steps.resolve.outputs.short }}\`) merges cleanly into \`$FORK_BRANCH\`."
+            echo
+            echo "Opened automatically so the merge is reviewed rather than applied."
+            echo "Nothing has been merged into \`$FORK_BRANCH\` - merging this pull request is what does that."
+            echo
+            echo "A green CI run here means the fork still *builds* against the new upstream"
+            echo "code. It does not mean it still behaves correctly: the folders feature has no"
+            echo "automated coverage on the list adapter, so it is worth a quick pass over"
+            echo "expand/collapse, adding an app to a folder, and search."
+          } > pr.md
+          gh pr create \
+            --base "$FORK_BRANCH" \
+            --head "$BRANCH" \
+            --title "Merge upstream ${{ steps.resolve.outputs.short }}" \
+            --body-file pr.md \
+            || echo "::warning::Could not open a pull request. Branch $BRANCH is pushed and can be merged manually."
+
+      - name: Open an issue (merge conflicts)
+        if: steps.merge.outputs.clean == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "Merging upstream \`${{ steps.resolve.outputs.ref }}\` (\`${{ steps.resolve.outputs.short }}\`) into \`$FORK_BRANCH\` hits conflicts."
+            echo
+            cat conflicts.md
+            echo
+            echo "Nothing has been changed - this is a trial merge that was aborted."
+            echo
+            echo "To resolve locally:"
+            echo '```bash'
+            echo "git fetch upstream && git checkout $FORK_BRANCH"
+            echo "git merge upstream/$MIRROR_BRANCH"
+            echo '```'
+            echo
+            echo "\`git rerere\` is enabled locally, so a resolution done once is replayed on later merges."
+          } > issue.md
+          gh issue create \
+            --title "Upstream sync conflicts (${{ steps.resolve.outputs.short }})" \
+            --body-file issue.md
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Upstream sync"
+            echo
+            echo "- ref: \`${{ steps.resolve.outputs.ref }}\` (\`${{ steps.resolve.outputs.short }}\`)"
+            if [ '${{ steps.check.outputs.todo }}' != 'true' ]; then
+              echo "- **Up to date.** No action taken."
+            elif [ '${{ steps.dedupe.outputs.seen }}' = 'true' ]; then
+              echo "- **Already reported.** No action taken."
+            elif [ '${{ steps.merge.outputs.clean }}' = 'true' ]; then
+              echo "- **Clean merge.** Pull request opened for review."
+            else
+              echo "- **Conflicts.** Issue opened."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
