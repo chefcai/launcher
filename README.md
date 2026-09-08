@@ -150,8 +150,7 @@ of replaying it on every sync.
 
 ## Building
 
-See [build.md](docs/build.md) for the general instructions, substituting this
-repository's clone URL.
+See [build.md](docs/build.md) for instructions.
 
 CI builds every push to `master` and `feature/**` and uploads a debug APK. The
 debug signing key is restored in CI from an `ANDROID_DEBUG_KEYSTORE` repository
