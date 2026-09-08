@@ -344,14 +344,19 @@ class AppsRecyclerAdapter(
                 activity.getSystemService(Service.LAUNCHER_APPS_SERVICE) as LauncherApps
             getAppShortcuts(appInfo.getRawInfo(), activity)
                 .forEach { shortcutInfo ->
-                    val shortcutIcon =
-                        launcherApps.getShortcutBadgedIconDrawable(shortcutInfo, 0).apply {
-                            transformMonochrome(grayscale, colorTheme)
-                        }
-                    val fixedIcon = object : DrawableWrapper(shortcutIcon) {
-                        override fun getIntrinsicWidth(): Int = iconSize
-                        override fun getIntrinsicHeight(): Int = iconSize
-                    }
+                    // getShortcutBadgedIconDrawable is documented to return null when
+                    // the shortcut is invalid or its icon cannot be loaded. Dereferencing
+                    // it unconditionally crashed the whole long press menu for such an
+                    // app; show the shortcut without an icon instead, so it stays usable.
+                    val fixedIcon =
+                        launcherApps.getShortcutBadgedIconDrawable(shortcutInfo, 0)
+                            ?.also { it.transformMonochrome(grayscale, colorTheme) }
+                            ?.let { shortcutIcon ->
+                                object : DrawableWrapper(shortcutIcon) {
+                                    override fun getIntrinsicWidth(): Int = iconSize
+                                    override fun getIntrinsicHeight(): Int = iconSize
+                                }
+                            }
                     popup.menu.add(shortcutInfo.shortLabel).apply {
                         icon = fixedIcon
                         setOnMenuItemClickListener {
