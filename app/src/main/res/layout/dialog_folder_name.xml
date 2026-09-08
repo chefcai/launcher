@@ -13,6 +13,8 @@
         android:layout_margin="10dp"
         android:importantForAutofill="no"
         android:inputType="text"
+        android:maxLines="1"
+        android:imeOptions="actionDone"
         tools:ignore="LabelFor" />
 
 </LinearLayout>

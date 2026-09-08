@@ -2,6 +2,8 @@ package de.jrpie.android.launcher.ui.list.apps
 
 import android.content.Context
 import android.view.View
+import android.view.WindowManager
+import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import androidx.appcompat.app.AlertDialog
 import com.google.android.material.snackbar.Snackbar
@@ -49,48 +51,76 @@ fun AbstractDetailedAppInfo.showFolderDialog(context: Context) {
 }
 
 /**
- * Asks for a name and creates a folder, then hands it to [onCreated].
- * A blank name is ignored, so the dialog cannot create unnamed folders.
+ * Shared name entry dialog for creating and renaming folders.
+ *
+ * Cancel is the negative button and OK the positive one, so they render as
+ * [Cancel] [OK]: the platform convention is the dismissive action on the left and
+ * the confirming action on the right. Rather than reversing that, the keyboard's
+ * done key commits the name directly, which removes the trip to the button
+ * entirely. A blank name is ignored, so neither path can create an unnamed folder.
  */
-fun showNewFolderDialog(context: Context, onCreated: (Folder) -> Unit) {
-    AlertDialog.Builder(context, R.style.AlertDialogCustom).apply {
-        setTitle(R.string.dialog_folder_new_title)
+private fun showFolderNameDialog(
+    context: Context,
+    title: CharSequence,
+    initialName: String?,
+    onCommit: (String) -> Unit
+) {
+    val dialog = AlertDialog.Builder(context, R.style.AlertDialogCustom).apply {
+        setTitle(title)
         setView(R.layout.dialog_folder_name)
         setNegativeButton(android.R.string.cancel) { d, _ -> d.cancel() }
         setPositiveButton(android.R.string.ok) { d, _ ->
             val name = (d as? AlertDialog)
                 ?.findViewById<EditText>(R.id.dialog_folder_name_edit_text)
-                ?.text.toString().trim()
-            if (name.isNotEmpty()) {
-                onCreated(Folder.create(name))
+                ?.text?.toString()?.trim()
+            if (!name.isNullOrEmpty()) {
+                onCommit(name)
             }
         }
-    }.create().also { it.show() }.apply {
-        findViewById<EditText>(R.id.dialog_folder_name_edit_text)?.setHint(
-            R.string.dialog_folder_name_hint
-        )
+    }.create()
+
+    dialog.show()
+
+    dialog.findViewById<EditText>(R.id.dialog_folder_name_edit_text)?.apply {
+        setHint(R.string.dialog_folder_name_hint)
+        initialName?.let {
+            setText(it)
+            setSelection(it.length)
+        }
+        setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                val name = text.toString().trim()
+                if (name.isNotEmpty()) {
+                    onCommit(name)
+                }
+                dialog.dismiss()
+                true
+            } else {
+                false
+            }
+        }
+        requestFocus()
     }
+    dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE)
+}
+
+/**
+ * Asks for a name and creates a folder, then hands it to [onCreated].
+ */
+fun showNewFolderDialog(context: Context, onCreated: (Folder) -> Unit) {
+    showFolderNameDialog(
+        context,
+        context.getString(R.string.dialog_folder_new_title),
+        null
+    ) { name -> onCreated(Folder.create(name)) }
 }
 
 fun Folder.showRenameDialog(context: Context) {
-    AlertDialog.Builder(context, R.style.AlertDialogCustom).apply {
-        setTitle(context.getString(R.string.dialog_folder_rename_title, label))
-        setView(R.layout.dialog_folder_name)
-        setNegativeButton(android.R.string.cancel) { d, _ -> d.cancel() }
-        setPositiveButton(android.R.string.ok) { d, _ ->
-            val name = (d as? AlertDialog)
-                ?.findViewById<EditText>(R.id.dialog_folder_name_edit_text)
-                ?.text.toString().trim()
-            if (name.isNotEmpty()) {
-                rename(name)
-            }
-        }
-    }.create().also { it.show() }.apply {
-        findViewById<EditText>(R.id.dialog_folder_name_edit_text)?.apply {
-            setText(this@showRenameDialog.label)
-            setHint(R.string.dialog_folder_name_hint)
-        }
-    }
+    showFolderNameDialog(
+        context,
+        context.getString(R.string.dialog_folder_rename_title, label),
+        label
+    ) { name -> rename(name) }
 }
 
 /**
