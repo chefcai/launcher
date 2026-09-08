@@ -20,7 +20,6 @@ import de.jrpie.android.launcher.Application
 import de.jrpie.android.launcher.R
 import de.jrpie.android.launcher.actions.Action
 import de.jrpie.android.launcher.actions.Gesture
-import de.jrpie.android.launcher.apps.AbstractAppInfo
 import de.jrpie.android.launcher.apps.AbstractDetailedAppInfo
 import de.jrpie.android.launcher.apps.AppFilter
 import de.jrpie.android.launcher.apps.AppInfo
@@ -32,24 +31,11 @@ import de.jrpie.android.launcher.preferences.list.AppNameFormat
 import de.jrpie.android.launcher.preferences.list.ListLayout
 import de.jrpie.android.launcher.ui.list.AbstractListActivity
 import de.jrpie.android.launcher.ui.transformMonochrome
-import java.util.Locale
 
 /**
  * One row of the app list: either an app, or a folder header that can be
  * expanded to reveal the apps inside it.
  */
-sealed interface AppListEntry {
-    data class FolderEntry(val folder: Folder) : AppListEntry
-    data class AppEntry(
-        val app: AbstractDetailedAppInfo,
-        /** true when this row is shown because its folder is expanded */
-        val inFolder: Boolean = false
-    ) : AppListEntry
-
-    /** Closes an expanded folder in the grid layouts, see [AppsRecyclerAdapter]. */
-    data class FolderEndEntry(val folderId: Int) : AppListEntry
-}
-
 /**
  * A [RecyclerView] (efficient scrollable list) containing all apps on the users device.
  * The apps details are represented by [AppInfo].
@@ -67,17 +53,17 @@ sealed interface AppListEntry {
 class AppsRecyclerAdapter(
     val activity: Activity,
     val root: View,
-    private val intention: AbstractListActivity.Companion.Intention = AbstractListActivity.Companion.Intention.VIEW,
+    internal val intention: AbstractListActivity.Companion.Intention = AbstractListActivity.Companion.Intention.VIEW,
     private val forGesture: String? = "",
-    private var appFilter: AppFilter = AppFilter(activity, ""),
-    private val layout: ListLayout,
-    private val nameFormat: AppNameFormat
+    internal var appFilter: AppFilter = AppFilter(activity, ""),
+    internal val layout: ListLayout,
+    internal val nameFormat: AppNameFormat
 ) :
     RecyclerView.Adapter<AppsRecyclerAdapter.BaseViewHolder>() {
 
 
-    private val apps = (activity.applicationContext as Application).apps
-    private val entries: MutableList<AppListEntry> = mutableListOf()
+    internal val apps = (activity.applicationContext as Application).apps
+    internal val entries: MutableList<AppListEntry> = mutableListOf()
     private val theme = LauncherPreferences.theme()
     private val colorTheme = theme.colorTheme()
     private val grayscale = colorTheme.monochromeIcons()
@@ -89,7 +75,7 @@ class AppsRecyclerAdapter(
      *
      * This is deliberately not persisted - the list opens with every folder closed.
      */
-    private val expandedFolders = mutableSetOf<Int>()
+    internal val expandedFolders = mutableSetOf<Int>()
 
     private val folderIndentPx = (24 * activity.resources.displayMetrics.density).toInt()
 
@@ -101,7 +87,7 @@ class AppsRecyclerAdapter(
     // partially filled row with the apps that follow it. They get a full span
     // marker after the last member instead, which breaks the row and closes the
     // block. The linear layouts need neither, one item per row already.
-    private val markFolderEnd =
+    internal val markFolderEnd =
         layout == ListLayout.GRID || layout == ListLayout.GRID_ONLY_ICONS
 
     // temporarily disable auto launch
@@ -112,30 +98,6 @@ class AppsRecyclerAdapter(
             updateAppsList()
         }
         updateAppsList()
-    }
-
-    /**
-     * Folders are only shown in the plain "all apps" list. Searching flattens the
-     * list, and the favorites / hidden / private space lists are already filtered
-     * views where a second grouping would only get in the way.
-     */
-    private fun foldersActive(): Boolean {
-        return intention == AbstractListActivity.Companion.Intention.VIEW
-                && appFilter.query.isEmpty()
-                && appFilter.favoritesVisibility == AppFilter.Companion.AppSetVisibility.VISIBLE
-                && appFilter.hiddenVisibility == AppFilter.Companion.AppSetVisibility.HIDDEN
-                && appFilter.privateSpaceVisibility == AppFilter.Companion.AppSetVisibility.VISIBLE
-    }
-
-    /**
-     * Whether the row at [position] is a heading rather than a cell, and so must
-     * take the whole width in the grid layouts.
-     */
-    fun isFullSpanRow(position: Int): Boolean {
-        return when (entries.getOrNull(position)) {
-            is AppListEntry.FolderEntry, is AppListEntry.FolderEndEntry -> true
-            else -> false
-        }
     }
 
 
@@ -197,30 +159,6 @@ class AppsRecyclerAdapter(
         }
     }
 
-    private fun bindFolder(viewHolder: FolderViewHolder, entry: AppListEntry.FolderEntry) {
-        val expanded = expandedFolders.contains(entry.folder.id)
-
-        viewHolder.textView.text = nameFormat.format(entry.folder.label)
-        viewHolder.img.setImageResource(
-            if (expanded) R.drawable.baseline_folder_open_24 else R.drawable.baseline_folder_24
-        )
-        viewHolder.chevron.setImageResource(
-            if (expanded) R.drawable.baseline_expand_less_24 else R.drawable.baseline_expand_more_24
-        )
-        viewHolder.itemView.contentDescription = activity.getString(
-            if (expanded) {
-                R.string.content_description_folder_collapse
-            } else {
-                R.string.content_description_folder_expand
-            }
-        )
-
-        viewHolder.itemView.setOnClickListener { toggleFolder(entry.folder) }
-        viewHolder.itemView.setOnLongClickListener {
-            showFolderPopup(viewHolder, entry.folder)
-        }
-    }
-
     private fun bindApp(viewHolder: AppViewHolder, entry: AppListEntry.AppEntry) {
         val appInfo = entry.app
         var appLabel = appInfo.getCustomLabel(activity)
@@ -257,63 +195,6 @@ class AppsRecyclerAdapter(
             viewHolder.textView.setOnClickListener { viewHolder.onClick(viewHolder.textView) }
             viewHolder.img.setOnClickListener { viewHolder.onClick(viewHolder.img) }
         }
-    }
-
-    /**
-     * Expands or collapses a folder in place.
-     *
-     * Only the block directly below the header changes, so the header itself stays
-     * where the user tapped it and nothing above it moves. Rows below shift by the
-     * size of the folder, which RecyclerView animates as an insertion / removal.
-     */
-    private fun toggleFolder(folder: Folder) {
-        val headerPosition = entries.indexOfFirst {
-            it is AppListEntry.FolderEntry && it.folder.id == folder.id
-        }
-        if (headerPosition < 0) {
-            return
-        }
-
-        if (!expandedFolders.remove(folder.id)) {
-            expandedFolders.add(folder.id)
-        }
-
-        val previousSize = entries.size
-        rebuildEntries()
-        val delta = entries.size - previousSize
-
-        notifyItemChanged(headerPosition)
-        if (delta > 0) {
-            notifyItemRangeInserted(headerPosition + 1, delta)
-        } else if (delta < 0) {
-            notifyItemRangeRemoved(headerPosition + 1, -delta)
-        }
-    }
-
-    @Suppress("SameReturnValue")
-    private fun showFolderPopup(viewHolder: FolderViewHolder, folder: Folder): Boolean {
-        val popup = PopupMenu(activity, viewHolder.img)
-        popup.inflate(R.menu.menu_folder)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            if (LauncherPreferences.list().layout() != ListLayout.TEXT) {
-                popup.setForceShowIcon(true)
-            }
-        }
-        popup.setOnMenuItemClickListener {
-            when (it.itemId) {
-                R.id.folder_menu_rename -> {
-                    folder.showRenameDialog(activity); true
-                }
-
-                R.id.folder_menu_delete -> {
-                    folder.showDeleteDialog(activity, root); true
-                }
-
-                else -> false
-            }
-        }
-        popup.show()
-        return true
     }
 
     @Suppress("SameReturnValue")
@@ -451,86 +332,6 @@ class AppsRecyclerAdapter(
                 forGesture ?: return
                 val gesture = Gesture.byId(forGesture) ?: return
                 Action.setActionForGesture(gesture, appInfo.getAction())
-            }
-        }
-    }
-
-    /**
-     * Rebuilds [entries] from the current app list, folders and expansion state.
-     * Does not notify - callers decide which notification is appropriate.
-     */
-    private fun rebuildEntries() {
-        val filtered = apps.value?.let { appFilter(it) } ?: emptyList()
-
-        entries.clear()
-
-        if (!foldersActive()) {
-            filtered.mapTo(entries) { AppListEntry.AppEntry(it) }
-            return
-        }
-
-        val folders = Folder.all()
-        if (folders.isEmpty()) {
-            filtered.mapTo(entries) { AppListEntry.AppEntry(it) }
-            return
-        }
-
-        // An app is listed under the first folder that claims it. The stored format
-        // allows an app in several folders; the UI currently keeps it to one.
-        val folderByApp = HashMap<AbstractAppInfo, Folder>()
-        folders.forEach { folder ->
-            folder.apps.forEach { app ->
-                if (!folderByApp.containsKey(app)) {
-                    folderByApp[app] = folder
-                }
-            }
-        }
-
-        // `filtered` is already sorted by label, so members stay sorted too.
-        val members = HashMap<Int, MutableList<AbstractDetailedAppInfo>>()
-        val topLevel = mutableListOf<Pair<String, AppListEntry>>()
-
-        filtered.forEach { app ->
-            val folder = folderByApp[app.getRawInfo()]
-            if (folder == null) {
-                topLevel.add(
-                    Pair(
-                        app.getCustomLabel(activity).lowercase(Locale.ROOT),
-                        AppListEntry.AppEntry(app)
-                    )
-                )
-            } else {
-                members.getOrPut(folder.id) { mutableListOf() }.add(app)
-            }
-        }
-
-        // Folder headers are sorted in alongside ungrouped apps. Empty folders are
-        // kept so they remain reachable for renaming and deleting.
-        folders.forEach { folder ->
-            topLevel.add(
-                Pair(folder.label.lowercase(Locale.ROOT), AppListEntry.FolderEntry(folder))
-            )
-        }
-
-        topLevel.sortBy { it.first }
-
-        topLevel.forEachIndexed { index, (_, entry) ->
-            entries.add(entry)
-            if (entry is AppListEntry.FolderEntry && expandedFolders.contains(entry.folder.id)) {
-                val folderMembers = members[entry.folder.id]
-                folderMembers?.mapTo(entries) {
-                    AppListEntry.AppEntry(it, inFolder = true)
-                }
-                // Only where the grid would otherwise merge the folder's last row
-                // with what follows. An empty folder has no row to close, and a
-                // folder at the very end of the list has nothing to be confused
-                // with, so neither gets a dangling rule.
-                if (markFolderEnd
-                    && !folderMembers.isNullOrEmpty()
-                    && index < topLevel.size - 1
-                ) {
-                    entries.add(AppListEntry.FolderEndEntry(entry.folder.id))
-                }
             }
         }
     }

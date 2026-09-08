@@ -3,7 +3,6 @@
 package de.jrpie.android.launcher.preferences.serialization
 
 import de.jrpie.android.launcher.apps.AbstractAppInfo
-import de.jrpie.android.launcher.apps.Folder
 import de.jrpie.android.launcher.apps.PinnedShortcutInfo
 import de.jrpie.android.launcher.widgets.Widget
 import de.jrpie.android.launcher.widgets.WidgetPanel
@@ -59,23 +58,6 @@ class SetWidgetPanelSerializer :
     override fun deserialize(value: java.util.Set<java.lang.String>?): java.util.Set<WidgetPanel>? {
         return value?.map(java.lang.String::toString)?.map(WidgetPanel::deserialize)
             ?.toHashSet() as? java.util.Set<WidgetPanel>
-    }
-}
-
-
-@Suppress("UNCHECKED_CAST")
-class SetFolderSerializer :
-    PreferenceSerializer<java.util.Set<Folder>?, java.util.Set<java.lang.String>?> {
-    @Throws(PreferenceSerializationException::class)
-    override fun serialize(value: java.util.Set<Folder>?): java.util.Set<java.lang.String>? {
-        return value?.map(Folder::serialize)
-            ?.toHashSet() as? java.util.Set<java.lang.String>
-    }
-
-    @Throws(PreferenceSerializationException::class)
-    override fun deserialize(value: java.util.Set<java.lang.String>?): java.util.Set<Folder>? {
-        return value?.map(java.lang.String::toString)?.map(Folder::deserialize)
-            ?.toHashSet() as? java.util.Set<Folder>
     }
 }
 
