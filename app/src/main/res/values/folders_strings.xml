@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Strings for the folders feature, which exists only in this fork.
+  ~
+  ~ Kept out of strings.xml and donottranslate.xml deliberately: upstream churns
+  ~ those two constantly (translation updates alone account for a large share of
+  ~ its commits), so every fork string living there is a standing merge conflict.
+  ~ Android merges every res/values/*.xml file, so a separate file costs nothing
+  ~ and leaves the upstream files untouched.
+  -->
+<resources>
+
+    <!-- preference key -->
+    <string name="settings_apps_folders_key" translatable="false">apps.folders</string>
+
+    <!-- app list and dialogs -->
+    <string name="list_app_folder_add">Add to folder</string>
+    <string name="list_app_folder_change">Move to folder</string>
+    <string name="list_folder_rename">Rename folder</string>
+    <string name="list_folder_delete">Delete folder</string>
+    <string name="dialog_folder_choose_title">Folder</string>
+    <string name="dialog_folder_none">No folder</string>
+    <string name="dialog_folder_new">New folder\u2026</string>
+    <string name="dialog_folder_new_title">New folder</string>
+    <string name="dialog_folder_name_hint">Folder name</string>
+    <string name="dialog_folder_rename_title">Rename \u201c%1$s\u201d</string>
+    <string name="dialog_folder_delete_message">Delete the folder \u201c%1$s\u201d? The apps in it are kept and return to the main list.</string>
+    <string name="snackbar_folder_deleted">Folder deleted</string>
+    <string name="content_description_folder_expand">Expand folder</string>
+    <string name="content_description_folder_collapse">Collapse folder</string>
+
+</resources>

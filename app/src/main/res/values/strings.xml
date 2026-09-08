@@ -268,22 +268,6 @@
     <string name="list_app_hidden_remove">Show</string>
     <string name="list_app_rename">Rename</string>
 
-    <!-- Folders -->
-    <string name="list_app_folder_add">Add to folder</string>
-    <string name="list_app_folder_change">Move to folder</string>
-    <string name="list_folder_rename">Rename folder</string>
-    <string name="list_folder_delete">Delete folder</string>
-    <string name="dialog_folder_choose_title">Folder</string>
-    <string name="dialog_folder_none">No folder</string>
-    <string name="dialog_folder_new">New folder\u2026</string>
-    <string name="dialog_folder_new_title">New folder</string>
-    <string name="dialog_folder_name_hint">Folder name</string>
-    <string name="dialog_folder_rename_title">Rename \u201c%1$s\u201d</string>
-    <string name="dialog_folder_delete_message">Delete the folder \u201c%1$s\u201d? The apps in it are kept and return to the main list.</string>
-    <string name="snackbar_folder_deleted">Folder deleted</string>
-    <string name="content_description_folder_expand">Expand folder</string>
-    <string name="content_description_folder_collapse">Collapse folder</string>
-
     <string name="list_apps_search_hint">Search</string>
     <string name="list_apps_search_hint_no_auto_launch">Search (no auto launch)</string>
 
