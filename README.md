@@ -1,54 +1,84 @@
 <!-- Shields from shields.io -->
-[![][shield-release]][latest-release]
-[![Android CI](https://github.com/jrpie/Launcher/actions/workflows/android.yml/badge.svg)](https://github.com/jrpie/Launcher/actions/workflows/android.yml)
+[![Android CI](https://github.com/chefcai/launcher/actions/workflows/android.yml/badge.svg?branch=feature/app-folders)](https://github.com/chefcai/launcher/actions/workflows/android.yml)
 [![][shield-license]][license]
-[![Chat on Matrix](https://matrix.to/img/matrix-badge.svg)][matrix]
-[![Chat on Discord](https://img.shields.io/badge/discord-join%20chat-007ec6.svg?style=flat)][discord]
 
+# μLauncher (folders fork)
 
+> **This is a personal fork of [jrpie/Launcher][upstream-repo], not the official project.**
+>
+> It adds one thing: **folders in the app list**. Upstream has indicated they do
+> not want folders as a concept in µLauncher, so this fork exists as a permanent
+> divergence rather than as work heading for a pull request.
+>
+> **Please do not report problems with this fork to upstream.** Their issue
+> tracker and chat rooms are for the official app, and its maintainers did not
+> write and cannot support this code. Anything wrong here is this fork's fault.
 
+µLauncher is an Android home screen that lets you launch apps using swipe gestures
+and button presses. It is *minimal, efficient and free of distraction*.
 
-# μLauncher
+## Download
 
+There is no store listing for this fork. Builds are produced by CI and published
+as a prerelease:
 
-µLauncher is an Android home screen that lets you launch apps using swipe gestures and button presses.
-It is *minimal, efficient and free of distraction*.
+**[⬇ Download the latest debug build][fork-apk]** — or see the [release page][fork-release].
 
+A few things worth knowing before installing:
 
-<a href="https://f-droid.org/packages/de.jrpie.android.launcher/"><img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="80"></a>
-<a href="https://accrescent.app/app/de.jrpie.android.launcher.accrescent"><img alt="Get it on Accrescent" src="https://accrescent.app/badges/get-it-on.png" height="80"></a>
-<a href="https://s.jrpie.de/launcher-obtainium"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/b1c8ac6f2ab08497189721a788a5763e28ff64cd/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="80"></a>
-<a href="https://github.com/jrpie/launcher/releases/latest"><img src="https://raw.githubusercontent.com/NeoApplications/Neo-Backup/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png" alt="Get it on GitHub" height="80"></a>
+- **This is a debug build**, signed with a debug certificate. It is not a signed
+  release and is not intended for everyday use.
+- The package id is `de.jrpie.android.launcher.debug`, so it **installs alongside**
+  a normal µLauncher rather than replacing it. You can keep both.
+- Builds are signed with a stable debug key, so a new build **installs over the top
+  of an older one** and keeps your folders and settings. No need to uninstall.
+- The version shown under *Settings → About* identifies the build, e.g.
+  `0.2.12-folders.5-debug`.
 
-You can also [get it on Google Play](https://play.google.com/store/apps/details?id=de.jrpie.android.launcher), but I don't recommend that.
+If you want the real µLauncher, get it from [upstream][upstream-repo] — via F-Droid,
+Accrescent, Obtainium or their GitHub releases. Do not use this fork for that.
 
-<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.jpg"
-     alt="screenshot"
-     height="400">
-     <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.jpg"
-     alt="screenshot"
-     height="400">
-     <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.jpg"
-     alt="screenshot"
-     height="400">
-     <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.jpg"
-     alt="screenshot"
-     height="400">
-     <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5.jpg"
-     alt="screenshot"
-     height="400">
-     <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/7.jpg"
-     alt="screenshot"
-     height="400">
-     <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/8.jpg"
-     alt="screenshot"
-     height="400">
+## Folders
 
+Folders group apps under a named header in the app list. They are text headers in
+a text list, not an icon grid — the aim was for them to feel native to the way
+µLauncher already presents apps.
 
-µLauncher is a fork of [finnmglas's app Launcher][original-repo].
-An incomplete list of changes can be found [here][changes-fork].
+**Using them**
+
+- **Long press an app → _Add to folder_.** Pick an existing folder, or create one.
+- **Tap a folder header** to expand it in place. The apps inside appear below it
+  and the rest of the list moves down. Tap again to collapse.
+- **Long press a folder header** to rename or delete it. Deleting a folder keeps
+  its apps — they simply return to the main list.
+
+**Behaviour**
+
+- Folder headers are sorted alphabetically **among** the ungrouped apps, not in a
+  separate section. Renaming a folder therefore moves it in the list.
+- Several folders can be open at once. Expanding one never moves anything above it.
+- **Search ignores folders entirely.** Typing gives a flat list of matching apps,
+  exactly as it does without this feature.
+- Folders do not appear in the favourites, hidden or private space lists, which
+  behave exactly as upstream.
+
+**Current limitations**
+
+- An app can be in **one folder at a time**. The stored format already allows more,
+  so this is a user interface restriction rather than a structural one.
+- **Expansion is not remembered** between visits — the list opens with every folder
+  closed. It does survive rotation.
+- **An empty folder expands to nothing.** Its header still appears so it can be
+  renamed or deleted, but tapping it has no visible effect.
+- Folder names are **English only**. They are deliberately kept out of upstream's
+  translation project, which does not know about this fork.
+
+Nothing else is changed: no upstream menu, setting, action or default gesture
+binding is altered by this fork.
 
 ## Features
+
+Everything below is upstream's work and is unchanged here.
 
 µLauncher only displays the date, time and a wallpaper.
 Pressing back or swiping up (this can be configured) opens a list
@@ -76,74 +106,86 @@ To every gesture you can bind one of the following actions:
  - volume up / down,
  - go to previous / next audio track.
 
-
-
 µLauncher is compatible with [work profile](https://www.android.com/enterprise/work-profile/),
 so apps like [Shelter](https://gitea.angry.im/PeterCxy/Shelter) can be used.
 
 By default the font is set to [Hack][hack-font], but other fonts can be selected.
 
+<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.jpg"
+     alt="screenshot"
+     height="400">
+     <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.jpg"
+     alt="screenshot"
+     height="400">
+     <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.jpg"
+     alt="screenshot"
+     height="400">
+     <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.jpg"
+     alt="screenshot"
+     height="400">
 
+*Screenshots are upstream's and do not show folders.*
 
-## Contributing
+## Repository layout
 
-There are several ways to contribute to this app:
-* You can add or improve [translations][toolate].
-     <br><img src="https://toolate.othing.xyz/widget/jrpie-launcher/launcher/horizontal-auto.svg" alt="translation status">
-* If you find a bug or have an idea for a new feature you can [join the chat][chat] or open an [issue][issues]. Please note that I work on this project in my free time. Thus I might not respond immediately and not all ideas will be implemented.
-* You can implement a new feature yourself:
-  - Create a fork of this repository: [![][shield-gh-fork]][fork]
-  - Create a new branch named `feature/<your feature>` or `fix/<your fix>` and commit your changes.
-  - Open a new pull request.
+| Branch | What it is |
+| --- | --- |
+| `master` | A clean mirror of [upstream][upstream-repo]. Never modified, so syncing it is always a fast-forward. |
+| `feature/app-folders` | The fork. Upstream plus folders. **This is the default branch and the one that is built and released.** |
 
+Keeping `master` untouched means `git diff master..feature/app-folders` is always
+exactly this fork's changes.
 
-See [build.md](docs/build.md) for instructions how to build this project.
-The [CI pipeline](https://github.com/jrpie/Launcher/actions) automatically creates debug builds.
-Note that those are not signed and not suitable for everyday use!
-The latest debug build can be found [here](https://github.com/jrpie/launcher/releases/tag/pre-release).
-You can also [add the debug version to Obtainium](https://s.jrpie.de/launcher-obtainium-debug).
+To work on it:
+
+```bash
+git clone https://github.com/chefcai/launcher
+cd launcher
+git remote add upstream https://github.com/jrpie/Launcher
+```
+
+Syncing with upstream is a fast-forward of `master`, then a merge into the folders
+branch. Merge rather than rebase: it records each conflict resolution once instead
+of replaying it on every sync.
+
+## Building
+
+See [build.md](docs/build.md) for the general instructions, substituting this
+repository's clone URL.
+
+CI builds every push to `master` and `feature/**` and uploads a debug APK. The
+debug signing key is restored in CI from an `ANDROID_DEBUG_KEYSTORE` repository
+secret so that every build shares a signature and updates install cleanly over
+each other. A local build without that secret gets whatever debug key Gradle
+generates for you, which will **not** install over a CI build.
+
+## Credits and licence
+
+This is a fork of [µLauncher by Josia Pietsch][upstream-repo], which is itself a
+fork of [Launcher by finnmglas][original-repo]. All of the application other than
+the folders feature is their work.
+
+Licensed under the MIT licence — see [LICENSE][license], which retains the original
+copyright of Finn Glas and the modification copyright of Josia Pietsch. The folders
+feature is contributed under the same licence.
+
+Upstream's documentation, community and translation project are linked from
+[their repository][upstream-repo]. Please direct anything that is not specific to
+this fork there, and anything that *is* specific to this fork to [this
+repository's issues][fork-issues].
 
 ---
   [hack-font]: https://sourcefoundry.org/hack/
   [original-repo]: https://github.com/finnmglas/Launcher
-  [toolate]: https://toolate.othing.xyz/projects/jrpie-launcher/
-  [issues]: https://github.com/jrpie/Launcher/issues/
-  [fork]: https://github.com/jrpie/Launcher/fork/
-  [changes-fork]: https://launcher.jrpie.de/docs/changes-fork/
+  [upstream-repo]: https://github.com/jrpie/Launcher
 
+<!-- This fork -->
 
-<!-- Download links / stores -->
-
-  [store-googleplay]: https://play.google.com/store/apps/details?id=de.jrpie.android.launcher
-  [store-googleplay-badgecampain]: https://play.google.com/store/apps/details?id=de.jrpie.android.launcher&pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1
-  [store-fdroid]: https://f-droid.org/packages/de.jrpie.android.launcher/
+  [fork-apk]: https://github.com/chefcai/launcher/releases/download/folders-debug/ulauncher-folders-debug.apk
+  [fork-release]: https://github.com/chefcai/launcher/releases/tag/folders-debug
+  [fork-issues]: https://github.com/chefcai/launcher/issues
 
 <!-- Shields and Badges -->
 
-  [shield-release]: https://img.shields.io/github/v/release/jrpie/Launcher?style=flat
-  [latest-release]: https://github.com/jrpie/Launcher/releases/latest
-  [shield-contribute]: https://img.shields.io/badge/contributions-welcome-007ec6.svg?style=flat
   [shield-license]: https://img.shields.io/badge/license-MIT-007ec6?style=flat
-
-  [shield-gh-watch]: https://img.shields.io/github/watchers/jrpie/Launcher?label=Watch&style=social
-  [shield-gh-star]: https://img.shields.io/github/stars/jrpie/Launcher?label=Star&style=social
-  [shield-gh-fork]: https://img.shields.io/github/forks/jrpie/Launcher?label=Fork&style=social
-  [matrix]: https://s.jrpie.de/launcher-matrix
-  [discord]: https://s.jrpie.de/launcher-discord
-  [chat]: https://s.jrpie.de/launcher-chat
-
-<!-- Star History -->
-
-## Star History
-
-<a href="https://star-history.dera.page/#jrpie/launcher&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://star-history.dera.page/svg?repos=jrpie/launcher&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://star-history.dera.page/svg?repos=jrpie/launcher&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://star-history.dera.page/svg?repos=jrpie/launcher&type=date&legend=top-left" />
- </picture>
-</a>
-
-<!-- Helpful resources -->
-
-  [license]: https://github.com/jrpie/Launcher/blob/master/LICENSE
+  [license]: https://github.com/chefcai/launcher/blob/feature/app-folders/LICENSE
