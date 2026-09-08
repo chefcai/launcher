@@ -13,6 +13,10 @@
         android:icon="@drawable/baseline_visibility_off_24"
         android:title="@string/list_app_hidden_add" />
     <item
+        android:id="@+id/app_menu_folder"
+        android:icon="@drawable/baseline_folder_24"
+        android:title="@string/list_app_folder_add" />
+    <item
         android:id="@+id/app_menu_rename"
         android:icon="@drawable/baseline_edit_24"
         android:title="@string/list_app_rename" />

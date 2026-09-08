@@ -14,6 +14,11 @@ enum class ListLayout(
     val updateLayoutManager: (context: Context, layoutManager: RecyclerView.LayoutManager) -> Unit,
     val layoutResource: Int,
     val useBadgedText: Boolean,
+    /**
+     * Layout used for folder headers. The grid layouts reuse the linear header,
+     * since a header is always rendered across the full width of the list.
+     */
+    val folderLayoutResource: Int = R.layout.list_apps_folder_row,
 ) {
     DEFAULT(
         { c -> LinearLayoutManager(c) },
@@ -25,7 +30,8 @@ enum class ListLayout(
         { c -> LinearLayoutManager(c) },
         { _, _ -> },
         R.layout.list_apps_row_variant_text,
-        true
+        true,
+        R.layout.list_apps_folder_row_variant_text
     ),
     GRID(
         { c ->

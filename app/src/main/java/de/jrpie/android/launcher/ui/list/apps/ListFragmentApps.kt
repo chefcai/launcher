@@ -101,6 +101,18 @@ class ListFragmentApps : Fragment(), UIObject {
                         (it as? LinearLayoutManager)?.reverseLayout = true
                         (it as? GridLayoutManager)?.reverseLayout = true
                     }
+                    // A folder header is a heading, not a cell: give it the whole row.
+                    (it as? GridLayoutManager)?.let { grid ->
+                        grid.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
+                            override fun getSpanSize(position: Int): Int {
+                                return if (appsRecyclerAdapter.isFolderHeader(position)) {
+                                    grid.spanCount
+                                } else {
+                                    1
+                                }
+                            }
+                        }
+                    }
                 }
             adapter = appsRecyclerAdapter
         }
