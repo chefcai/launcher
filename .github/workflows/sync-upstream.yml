@@ -89,7 +89,10 @@ jobs:
             SEEN=true
             echo "Branch $BRANCH already exists - already reported."
           fi
-          if [ "$(gh issue list --state open --search "in:title $SHORT" --json number --jq 'length')" != '0' ]; then
+          # Issues may be disabled on the repository (GitHub's default for forks),
+          # in which case there is nothing to dedupe against and this is skipped.
+          OPEN=$(gh issue list --state open --search "in:title $SHORT" --json number --jq 'length' 2>/dev/null || echo 'n/a')
+          if [ "$OPEN" != 'n/a' ] && [ "$OPEN" != '0' ]; then
             SEEN=true
             echo "An open issue already mentions $SHORT - already reported."
           fi
@@ -169,9 +172,22 @@ jobs:
             echo
             echo "\`git rerere\` is enabled locally, so a resolution done once is replayed on later merges."
           } > issue.md
-          gh issue create \
-            --title "Upstream sync conflicts (${{ steps.resolve.outputs.short }})" \
-            --body-file issue.md
+          if gh issue create \
+               --title "Upstream sync conflicts (${{ steps.resolve.outputs.short }})" \
+               --body-file issue.md; then
+            echo 'Reported as an issue.'
+          else
+            # Issues can be disabled on the repository. Rather than swallow the
+            # result, put it in the run summary and fail, so the scheduled run
+            # goes red and GitHub emails about it.
+            echo '::error::Upstream merge conflicts, and an issue could not be opened.'
+            {
+              echo '### Upstream sync conflicts'
+              echo
+              cat issue.md
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
 
       - name: Summary
         if: always()
