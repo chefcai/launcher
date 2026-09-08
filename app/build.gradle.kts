@@ -37,8 +37,11 @@ android {
         applicationId = "de.jrpie.android.launcher"
         minSdk = 21
         targetSdk = 36
-        versionCode = 57
-        versionName = "0.2.12"
+        versionCode = 58
+        // Fork build identifier: upstream 0.2.12 + the folders branch, build 1.
+        // Bumped so an install over a previous debug build is a real upgrade and the
+        // running version can be read off Settings -> About at a glance.
+        versionName = "0.2.12-folders.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
