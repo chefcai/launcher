@@ -23,11 +23,22 @@ jobs:
 
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
+    # Restored on every branch, not only master. Without a stable debug key Gradle
+    # generates a fresh one per run, so every build carries a different signature,
+    # and sideloading a new build over an older one fails with
+    # INSTALL_FAILED_UPDATE_INCOMPATIBLE until the app is uninstalled - which wipes
+    # folders and settings and makes iterative testing on a device painful.
+    # Written to both locations Gradle may look in for the debug keystore.
     - name: Read Debug Keystore
-      if: github.ref == 'refs/heads/master' && github.repository == 'jrpie/launcher'
       run: |
-        mkdir -p ~/.config/.android/
-        echo "$ANDROID_DEBUG_KEYSTORE" | base64 -d > ~/.config/.android/debug.keystore
+        if [ -z "$ANDROID_DEBUG_KEYSTORE" ]; then
+          echo "ANDROID_DEBUG_KEYSTORE is not set - Gradle will generate a throwaway"
+          echo "debug key and this build will NOT install over previous builds."
+          exit 0
+        fi
+        mkdir -p ~/.config/.android/ ~/.android/
+        printf '%s' "$ANDROID_DEBUG_KEYSTORE" | base64 -d > ~/.config/.android/debug.keystore
+        cp ~/.config/.android/debug.keystore ~/.android/debug.keystore
       env:
         ANDROID_DEBUG_KEYSTORE: ${{ secrets.ANDROID_DEBUG_KEYSTORE }}
     - name: Build with Gradle
