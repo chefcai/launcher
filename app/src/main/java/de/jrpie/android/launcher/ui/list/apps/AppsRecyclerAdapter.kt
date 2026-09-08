@@ -45,6 +45,9 @@ sealed interface AppListEntry {
         /** true when this row is shown because its folder is expanded */
         val inFolder: Boolean = false
     ) : AppListEntry
+
+    /** Closes an expanded folder in the grid layouts, see [AppsRecyclerAdapter]. */
+    data class FolderEndEntry(val folderId: Int) : AppListEntry
 }
 
 /**
@@ -94,6 +97,13 @@ class AppsRecyclerAdapter(
     private val indentFolderMembers =
         layout == ListLayout.DEFAULT || layout == ListLayout.TEXT
 
+    // The grid layouts cannot indent, and worse, they complete a folder's last
+    // partially filled row with the apps that follow it. They get a full span
+    // marker after the last member instead, which breaks the row and closes the
+    // block. The linear layouts need neither, one item per row already.
+    private val markFolderEnd =
+        layout == ListLayout.GRID || layout == ListLayout.GRID_ONLY_ICONS
+
     // temporarily disable auto launch
     var disableAutoLaunch: Boolean = false
 
@@ -117,8 +127,15 @@ class AppsRecyclerAdapter(
                 && appFilter.privateSpaceVisibility == AppFilter.Companion.AppSetVisibility.VISIBLE
     }
 
-    fun isFolderHeader(position: Int): Boolean {
-        return entries.getOrNull(position) is AppListEntry.FolderEntry
+    /**
+     * Whether the row at [position] is a heading rather than a cell, and so must
+     * take the whole width in the grid layouts.
+     */
+    fun isFullSpanRow(position: Int): Boolean {
+        return when (entries.getOrNull(position)) {
+            is AppListEntry.FolderEntry, is AppListEntry.FolderEndEntry -> true
+            else -> false
+        }
     }
 
 
@@ -140,6 +157,8 @@ class AppsRecyclerAdapter(
         }
     }
 
+    inner class FolderEndViewHolder(itemView: View) : BaseViewHolder(itemView)
+
     inner class FolderViewHolder(itemView: View) : BaseViewHolder(itemView) {
         var textView: TextView = itemView.findViewById(R.id.list_apps_folder_row_name)
         var img: ImageView = itemView.findViewById(R.id.list_apps_folder_row_icon)
@@ -150,16 +169,23 @@ class AppsRecyclerAdapter(
     override fun getItemViewType(position: Int): Int {
         return when (entries[position]) {
             is AppListEntry.FolderEntry -> VIEW_TYPE_FOLDER
+            is AppListEntry.FolderEndEntry -> VIEW_TYPE_FOLDER_END
             is AppListEntry.AppEntry -> VIEW_TYPE_APP
         }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BaseViewHolder {
         val inflater = LayoutInflater.from(parent.context)
-        return if (viewType == VIEW_TYPE_FOLDER) {
-            FolderViewHolder(inflater.inflate(layout.folderLayoutResource, parent, false))
-        } else {
-            AppViewHolder(inflater.inflate(layout.layoutResource, parent, false))
+        return when (viewType) {
+            VIEW_TYPE_FOLDER ->
+                FolderViewHolder(inflater.inflate(layout.folderLayoutResource, parent, false))
+
+            VIEW_TYPE_FOLDER_END ->
+                FolderEndViewHolder(
+                    inflater.inflate(R.layout.list_apps_folder_end, parent, false)
+                )
+
+            else -> AppViewHolder(inflater.inflate(layout.layoutResource, parent, false))
         }
     }
 
@@ -167,6 +193,7 @@ class AppsRecyclerAdapter(
         when (val entry = entries[i]) {
             is AppListEntry.FolderEntry -> bindFolder(viewHolder as FolderViewHolder, entry)
             is AppListEntry.AppEntry -> bindApp(viewHolder as AppViewHolder, entry)
+            is AppListEntry.FolderEndEntry -> { /* static rule, nothing to bind */ }
         }
     }
 
@@ -409,6 +436,7 @@ class AppsRecyclerAdapter(
         when (val entry = entries.getOrNull(pos) ?: return) {
             is AppListEntry.FolderEntry -> toggleFolder(entry.folder)
             is AppListEntry.AppEntry -> selectApp(entry.app, rect)
+            is AppListEntry.FolderEndEntry -> { /* not interactive */ }
         }
     }
 
@@ -486,11 +514,22 @@ class AppsRecyclerAdapter(
 
         topLevel.sortBy { it.first }
 
-        topLevel.forEach { (_, entry) ->
+        topLevel.forEachIndexed { index, (_, entry) ->
             entries.add(entry)
             if (entry is AppListEntry.FolderEntry && expandedFolders.contains(entry.folder.id)) {
-                members[entry.folder.id]?.mapTo(entries) {
+                val folderMembers = members[entry.folder.id]
+                folderMembers?.mapTo(entries) {
                     AppListEntry.AppEntry(it, inFolder = true)
+                }
+                // Only where the grid would otherwise merge the folder's last row
+                // with what follows. An empty folder has no row to close, and a
+                // folder at the very end of the list has nothing to be confused
+                // with, so neither gets a dangling rule.
+                if (markFolderEnd
+                    && !folderMembers.isNullOrEmpty()
+                    && index < topLevel.size - 1
+                ) {
+                    entries.add(AppListEntry.FolderEndEntry(entry.folder.id))
                 }
             }
         }
@@ -534,5 +573,6 @@ class AppsRecyclerAdapter(
     companion object {
         private const val VIEW_TYPE_APP = 0
         private const val VIEW_TYPE_FOLDER = 1
+        private const val VIEW_TYPE_FOLDER_END = 2
     }
 }

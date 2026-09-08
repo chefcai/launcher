@@ -105,7 +105,7 @@ class ListFragmentApps : Fragment(), UIObject {
                     (it as? GridLayoutManager)?.let { grid ->
                         grid.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
                             override fun getSpanSize(position: Int): Int {
-                                return if (appsRecyclerAdapter.isFolderHeader(position)) {
+                                return if (appsRecyclerAdapter.isFullSpanRow(position)) {
                                     grid.spanCount
                                 } else {
                                     1

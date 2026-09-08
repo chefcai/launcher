@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Closes an expanded folder in the grid layouts. Spans the full width, so the
+  ~ grid has to break the row: without it the folder's last, partially filled row
+  ~ is completed with the top level apps that follow, putting unrelated icons
+  ~ side by side. The rule itself is the boundary that the indent provides in the
+  ~ linear layouts.
+  -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp">
+
+    <View
+        android:id="@+id/list_apps_folder_end_rule"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:alpha="0.25"
+        android:background="?android:attr/textColor" />
+
+</FrameLayout>
