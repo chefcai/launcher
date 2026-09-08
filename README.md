@@ -40,9 +40,20 @@ Accrescent, Obtainium or their GitHub releases. Do not use this fork for that.
 
 ## Folders
 
-Folders group apps under a named header in the app list. They are text headers in
-a text list, not an icon grid — the aim was for them to feel native to the way
-µLauncher already presents apps.
+Folders group apps under a named header in the app list. They are headers within
+the list µLauncher already shows, rather than the icon-grid folders other
+launchers use, so they work in every list layout.
+
+<img src="img/folders/01-folders-text.jpg"
+     alt="folders in the text layout, two of them expanded"
+     height="400">
+<img src="img/folders/02-folders-grid.jpg"
+     alt="folders in the grid layout, one expanded"
+     height="400">
+
+*The text and grid layouts. Folder headers sit alphabetically among the apps and
+several can be open at once. Members are indented — or, in the grid layouts,
+closed off by a rule, so a folder's apps never share a row with the apps after it.*
 
 **Using them**
 
@@ -51,6 +62,20 @@ a text list, not an icon grid — the aim was for them to feel native to the way
   and the rest of the list moves down. Tap again to collapse.
 - **Long press a folder header** to rename or delete it. Deleting a folder keeps
   its apps — they simply return to the main list.
+
+<img src="img/folders/03-app-menu.jpg"
+     alt="the app long press menu, showing Add to folder"
+     height="400">
+<img src="img/folders/04-folder-picker.jpg"
+     alt="choosing which folder an app belongs to"
+     height="400">
+<img src="img/folders/05-new-folder.jpg"
+     alt="naming a new folder"
+     height="400">
+
+*Assigning an app: the long press menu, the folder picker, and creating a folder.
+Picking an entry applies it immediately, so the picker needs only a cancel button.
+The name field takes focus with the keyboard up and commits on its done key.*
 
 **Behaviour**
 
