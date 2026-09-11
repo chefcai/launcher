@@ -1,0 +1,21 @@
+name: ci
+
+on:
+  push:
+    branches: [master, "feature/**"]
+  pull_request:
+    branches: [master, "feature/**"]
+
+jobs:
+  baseline:
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: chefcai/ci-templates/.github/workflows/baseline.yml@main
+
+  kotlin:
+    uses: chefcai/ci-templates/.github/workflows/kotlin.yml@kotlin-detekt-detect
+    with:
+      is-android: true
+      build-cmd: "./gradlew assembleDebug"
+      test-cmd: "./gradlew test"
