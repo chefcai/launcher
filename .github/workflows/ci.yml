@@ -14,7 +14,7 @@ jobs:
     uses: chefcai/ci-templates/.github/workflows/baseline.yml@main
 
   kotlin:
-    uses: chefcai/ci-templates/.github/workflows/kotlin.yml@kotlin-detekt-detect
+    uses: chefcai/ci-templates/.github/workflows/kotlin.yml@main
     with:
       is-android: true
       build-cmd: "./gradlew assembleDebug"
