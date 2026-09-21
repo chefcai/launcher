@@ -42,8 +42,10 @@ import de.jrpie.android.launcher.ui.transformMonochrome
  *
  * Apps that belong to a [Folder] are collapsed behind a folder header. Headers are
  * sorted into the list alphabetically alongside ungrouped apps, and expand inline.
- * Grouping is skipped while searching and in the filtered lists (favorites, hidden,
- * private space), so those keep behaving exactly as before.
+ * The favorites list groups the same way, restricted to folders that have a
+ * favorited member (see [foldersToRender]). Grouping is skipped while searching
+ * and in the hidden / private space lists, so those keep behaving exactly as
+ * before.
  *
  * @param activity - the activity this is in
  * @param intention - why the list is displayed ("view", "pick")
@@ -355,6 +357,28 @@ class AppsRecyclerAdapter(
         }
 
         notifyDataSetChanged()
+        updateEmptyFavoritesState()
+    }
+
+    /**
+     * Shows a hint instead of the (otherwise blank) list when the favorites
+     * view has nothing favorited yet. Left alone while a search query narrows
+     * the favorites view further, so an empty search result is not mistaken
+     * for having no favorites at all. Left untouched - and always hidden -
+     * outside `list_apps.xml`, since [root] is that layout's root wherever this
+     * adapter is used, and `findViewById` simply returns null if it is missing.
+     */
+    private fun updateEmptyFavoritesState() {
+        val emptyView = root.findViewById<View>(R.id.list_apps_empty_favorites) ?: return
+        emptyView.visibility =
+            if (appFilter.favoritesVisibility == AppFilter.Companion.AppSetVisibility.EXCLUSIVE
+                && appFilter.query.isEmpty()
+                && entries.isEmpty()
+            ) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
     }
 
     /**

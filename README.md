@@ -84,8 +84,11 @@ The name field takes focus with the keyboard up and commits on its done key.*
 - Several folders can be open at once. Expanding one never moves anything above it.
 - **Search ignores folders entirely.** Typing gives a flat list of matching apps,
   exactly as it does without this feature.
-- Folders do not appear in the favourites, hidden or private space lists, which
-  behave exactly as upstream.
+- **The favourites list groups the same way**, restricted to the folders that
+  currently have a favourited app in them - a folder with nothing favourited in
+  it does not show up there, even though it still exists in the main list.
+- Folders do not appear in the hidden or private space lists, which behave
+  exactly as upstream.
 
 **Current limitations**
 
@@ -93,8 +96,9 @@ The name field takes focus with the keyboard up and commits on its done key.*
   so this is a user interface restriction rather than a structural one.
 - **Expansion is not remembered** between visits — the list opens with every folder
   closed. It does survive rotation.
-- **An empty folder expands to nothing.** Its header still appears so it can be
-  renamed or deleted, but tapping it has no visible effect.
+- **An empty folder expands to nothing.** Its header still appears in the main
+  list so it can be renamed or deleted, but tapping it has no visible effect. In
+  the favourites list an empty (there) folder does not appear at all.
 - Folder names are **English only**. They are deliberately kept out of upstream's
   translation project, which does not know about this fork.
 
