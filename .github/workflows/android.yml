@@ -50,9 +50,26 @@ jobs:
         name: launcher-debug-${{ github.sha }}
         path: app/build/outputs/apk/default/debug/app-default-debug.apk
 
+    # Upstream publishes its own rolling pre-release from master. This fork's
+    # release branch is feature/app-folders (see README), and the README's
+    # download link already points at tag `folders-debug` / asset
+    # `ulauncher-folders-debug.apk`, so the fork's copy of this step targets
+    # those names instead of recreating upstream's under a different tag.
+    - name: Fork release variables
+      if: github.ref == 'refs/heads/feature/app-folders' && github.repository == 'chefcai/launcher'
+      id: fork_release
+      run: |
+        VERSION_NAME=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+        echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+        cp app/build/outputs/apk/default/debug/app-default-debug.apk ulauncher-folders-debug.apk
     - name: Delete Old Pre-Release
       if: github.ref == 'refs/heads/master' && github.repository == 'jrpie/launcher'
       run: gh release delete pre-release --cleanup-tag
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Delete Old Fork Pre-Release
+      if: github.ref == 'refs/heads/feature/app-folders' && github.repository == 'chefcai/launcher'
+      run: gh release delete folders-debug --cleanup-tag
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Create Pre-Release
@@ -68,5 +85,31 @@ jobs:
         removeArtifacts: true
         replacesArtifacts: true
         artifacts: "app/build/outputs/apk/default/debug/app-default-debug.apk"
+        allowUpdates: true
+        token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Create Fork Pre-Release
+      if: github.ref == 'refs/heads/feature/app-folders' && github.repository == 'chefcai/launcher'
+      uses: ncipollo/release-action@v1
+      with:
+        commit: ${{ github.sha }}
+        tag: "folders-debug"
+        name: "Folders (debug build) - ${{ steps.fork_release.outputs.version_name }}"
+        prerelease: true
+        body: |
+          **Debug build - for testing only.** Published automatically by CI from branch `feature/app-folders`.
+
+          - Version: **${{ steps.fork_release.outputs.version_name }}-debug (${{ github.run_number }})**
+          - Commit: `${{ github.sha }}`
+          - Package id: `de.jrpie.android.launcher.debug`
+
+          Install straight over the top - do not uninstall. Signed with a stable debug key.
+
+          This build has **not** been manually verified on a device - it is only
+          confirmed to compile and pass the automated test suite. See the commit
+          history and linked pull requests for what changed.
+        generateReleaseNotes: true
+        removeArtifacts: true
+        replacesArtifacts: true
+        artifacts: "ulauncher-folders-debug.apk"
         allowUpdates: true
         token: ${{ secrets.GITHUB_TOKEN }}
