@@ -14,6 +14,10 @@ jobs:
     uses: chefcai/ci-templates/.github/workflows/baseline.yml@main
 
   kotlin:
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
     uses: chefcai/ci-templates/.github/workflows/kotlin.yml@main
     with:
       is-android: true
