@@ -4,6 +4,7 @@ import de.jrpie.android.launcher.apps.AbstractAppInfo
 import de.jrpie.android.launcher.apps.AbstractDetailedAppInfo
 import de.jrpie.android.launcher.apps.AppFilter
 import de.jrpie.android.launcher.apps.Folder
+import de.jrpie.android.launcher.preferences.LauncherPreferences
 import de.jrpie.android.launcher.ui.list.AbstractListActivity
 import java.util.Locale
 
@@ -14,16 +15,43 @@ import java.util.Locale
  */
 
 /**
- * Folders are only shown in the plain "all apps" list. Searching flattens the
- * list, and the favorites / hidden / private space lists are already filtered
- * views where a second grouping would only get in the way.
+ * Folders are shown in the plain "all apps" list, and - grouping only apps that
+ * are favorited - in the favorites list. Searching flattens the list, and the
+ * hidden / private space lists are already filtered views where a second
+ * grouping would only get in the way.
  */
 internal fun AppsRecyclerAdapter.foldersActive(): Boolean {
     return intention == AbstractListActivity.Companion.Intention.VIEW
             && appFilter.query.isEmpty()
-            && appFilter.favoritesVisibility == AppFilter.Companion.AppSetVisibility.VISIBLE
+            && appFilter.favoritesVisibility != AppFilter.Companion.AppSetVisibility.HIDDEN
             && appFilter.hiddenVisibility == AppFilter.Companion.AppSetVisibility.HIDDEN
             && appFilter.privateSpaceVisibility == AppFilter.Companion.AppSetVisibility.VISIBLE
+}
+
+/**
+ * The folders that should render a header, given whether the list is currently
+ * restricted to favorites.
+ *
+ * Outside the favorites view every folder is kept, including empty ones, so it
+ * stays reachable for renaming and deleting. Inside the favorites view a folder
+ * is only kept when it has at least one favorited member - an empty folder
+ * header there would have nothing to expand and no favorites-specific way to
+ * reach it, since folder management (rename / delete) already happens from the
+ * main list.
+ *
+ * Pulled out of [rebuildEntries] as a pure function of [Folder.apps] and
+ * [favorites] so the favorites/folders interaction can be unit tested without
+ * an [android.app.Activity] to build an [AppsRecyclerAdapter] with.
+ */
+internal fun foldersToRender(
+    folders: List<Folder>,
+    onlyFavorites: Boolean,
+    favorites: Set<AbstractAppInfo>
+): List<Folder> {
+    if (!onlyFavorites) {
+        return folders
+    }
+    return folders.filter { folder -> folder.apps.any { it in favorites } }
 }
 
 /**
@@ -40,7 +68,10 @@ internal fun AppsRecyclerAdapter.rebuildEntries() {
         return
     }
 
-    val folders = Folder.all()
+    val onlyFavorites =
+        appFilter.favoritesVisibility == AppFilter.Companion.AppSetVisibility.EXCLUSIVE
+    val favorites = LauncherPreferences.apps().favorites() ?: setOf()
+    val folders = foldersToRender(Folder.all(), onlyFavorites, favorites)
     if (folders.isEmpty()) {
         filtered.mapTo(entries) { AppListEntry.AppEntry(it) }
         return
@@ -75,8 +106,11 @@ internal fun AppsRecyclerAdapter.rebuildEntries() {
         }
     }
 
-    // Folder headers are sorted in alongside ungrouped apps. Empty folders are
-    // kept so they remain reachable for renaming and deleting.
+    // Folder headers are sorted in alongside ungrouped apps. Outside the
+    // favorites view, empty folders are kept so they remain reachable for
+    // renaming and deleting; `folders` was already narrowed to those with a
+    // favorited member above when onlyFavorites is set, so none of them are
+    // empty here.
     folders.forEach { folder ->
         topLevel.add(
             Pair(folder.label.lowercase(Locale.ROOT), AppListEntry.FolderEntry(folder))
