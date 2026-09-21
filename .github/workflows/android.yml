@@ -9,6 +9,12 @@ on:
 
 jobs:
   build:
+    # contents: write is needed by the release steps below (gh release
+    # delete, and ncipollo/release-action's create/upload) - this repo's
+    # default GITHUB_TOKEN permissions are read-only, unlike upstream's,
+    # where this workflow runs without ever declaring permissions at all.
+    permissions:
+      contents: write
 
     runs-on: ubuntu-latest
 
@@ -69,6 +75,10 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Delete Old Fork Pre-Release
       if: github.ref == 'refs/heads/feature/app-folders' && github.repository == 'chefcai/launcher'
+      # Non-fatal: absent on the very first run for a given tag, and
+      # allowUpdates below means Create Fork Pre-Release does not depend on
+      # this having succeeded.
+      continue-on-error: true
       run: gh release delete folders-debug --cleanup-tag
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
